@@ -1,3 +1,3 @@
-# flatyd
+# tytr
 
-Generate flat typed dictionaries from python classes
+Type transformations for Python
