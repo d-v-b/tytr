@@ -1,0 +1,19 @@
+[project]
+name = "tytr"
+version = "0.1.0"
+description = "Type transformations"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+license = "MIT"
+authors = [
+    {name = "Davis Bennett"}
+]
+[dependency-groups]
+docs = [
+    "mkdocs-material>=9.7.1",
+]
+test = [
+    "pydantic>=2.12.5",
+    "pytest>=9.0.2",
+]
