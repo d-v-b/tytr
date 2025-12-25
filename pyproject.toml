@@ -6,6 +6,22 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
 license = "MIT"
+license-files = ["LICENSE"]
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: Implementation :: CPython',
+    'Programming Language :: Python :: Implementation :: PyPy',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3 :: Only',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
+    'Programming Language :: Python :: 3.14',
+    'Intended Audience :: Developers',
+    'Operating System :: OS Independent',
+    'Topic :: Software Development :: Libraries :: Python Modules',
+]
 authors = [
     {name = "Davis Bennett"}
 ]
@@ -16,4 +32,24 @@ docs = [
 test = [
     "pydantic>=2.12.5",
     "pytest>=9.0.2",
+]
+
+[tool.ruff]
+line-length = 90
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "B",
+    "C4",
+    "E",
+    "F",
+    "I",
+    "ISC001",
+    "PGH004",
+    "RUF",
+    "SIM201",
+    "SIM202",
+    "UP",
+    "W",
 ]

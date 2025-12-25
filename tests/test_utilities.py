@@ -40,11 +40,14 @@ def test_partial():
     """Test that partial makes all fields NotRequired."""
     result = partial(User)
 
-    expected = TypedDict("PartialUser", {
-        "name": NotRequired[str],
-        "age": NotRequired[int],
-        "email": NotRequired[str],
-    })
+    expected = TypedDict(
+        "PartialUser",
+        {
+            "name": NotRequired[str],
+            "age": NotRequired[int],
+            "email": NotRequired[str],
+        },
+    )
 
     assert td_eq(result, expected)
 
@@ -59,10 +62,13 @@ def test_partial_already_optional():
     """Test that partial handles already NotRequired fields."""
     result = partial(PartialUser)
 
-    expected = TypedDict("PartialPartialUser", {
-        "name": NotRequired[str],
-        "age": NotRequired[int],
-    })
+    expected = TypedDict(
+        "PartialPartialUser",
+        {
+            "name": NotRequired[str],
+            "age": NotRequired[int],
+        },
+    )
 
     assert td_eq(result, expected)
 
@@ -71,10 +77,13 @@ def test_required():
     """Test that required makes all fields Required."""
     result = required(PartialUser)
 
-    expected = TypedDict("RequiredPartialUser", {
-        "name": Required[str],
-        "age": Required[int],
-    })
+    expected = TypedDict(
+        "RequiredPartialUser",
+        {
+            "name": Required[str],
+            "age": Required[int],
+        },
+    )
 
     assert td_eq(result, expected)
 
@@ -89,10 +98,13 @@ def test_required_mixed():
     """Test that required handles mixed Required/NotRequired fields."""
     result = required(MixedRequiredness)
 
-    expected = TypedDict("RequiredMixedRequiredness", {
-        "required_field": Required[str],
-        "optional_field": Required[int],
-    })
+    expected = TypedDict(
+        "RequiredMixedRequiredness",
+        {
+            "required_field": Required[str],
+            "optional_field": Required[int],
+        },
+    )
 
     assert td_eq(result, expected)
 
@@ -103,11 +115,14 @@ def test_readonly():
 
     result = readonly(User)
 
-    expected = TypedDict("ReadonlyUser", {
-        "name": ReadOnly[str],
-        "age": ReadOnly[int],
-        "email": ReadOnly[str],
-    })
+    expected = TypedDict(
+        "ReadonlyUser",
+        {
+            "name": ReadOnly[str],
+            "age": ReadOnly[int],
+            "email": ReadOnly[str],
+        },
+    )
     assert td_eq(result, expected)
     assert result.__name__ == "ReadonlyUser"
 
@@ -118,10 +133,13 @@ def test_readonly_preserves_required():
 
     result = readonly(MixedRequiredness)
 
-    expected = TypedDict("ReadonlyMixedRequiredness", {
-        "required_field": Required[ReadOnly[str]],
-        "optional_field": NotRequired[ReadOnly[int]],
-    })
+    expected = TypedDict(
+        "ReadonlyMixedRequiredness",
+        {
+            "required_field": Required[ReadOnly[str]],
+            "optional_field": NotRequired[ReadOnly[int]],
+        },
+    )
     assert td_eq(result, expected)
 
 
@@ -132,33 +150,42 @@ def test_readonly_idempotent():
     first = readonly(User)
     second = readonly(first, name="ReadonlyUser")
 
-    expected = TypedDict("ReadonlyUser", {
-        "name": ReadOnly[str],
-        "age": ReadOnly[int],
-        "email": ReadOnly[str],
-    })
+    expected = TypedDict(
+        "ReadonlyUser",
+        {
+            "name": ReadOnly[str],
+            "age": ReadOnly[int],
+            "email": ReadOnly[str],
+        },
+    )
     assert td_eq(second, expected)
 
 
 def test_pick():
     """Test that pick selects only specified fields."""
-    result = pick(User, ('name', 'age'))
+    result = pick(User, ("name", "age"))
 
-    expected = TypedDict("PickUser", {
-        "name": str,
-        "age": int,
-    })
+    expected = TypedDict(
+        "PickUser",
+        {
+            "name": str,
+            "age": int,
+        },
+    )
 
     assert td_eq(result, expected)
 
 
 def test_pick_single_field():
     """Test that pick works with a single field."""
-    result = pick(User, ('name',))
+    result = pick(User, ("name",))
 
-    expected = TypedDict("PickUser", {
-        "name": str,
-    })
+    expected = TypedDict(
+        "PickUser",
+        {
+            "name": str,
+        },
+    )
 
     assert td_eq(result, expected)
 
@@ -166,28 +193,34 @@ def test_pick_single_field():
 def test_pick_missing_key():
     """Test that pick raises error for missing keys."""
     with pytest.raises(ValueError, match="Keys {'missing'} not found"):
-        pick(User, ('name', 'missing'))
+        pick(User, ("name", "missing"))
 
 
 def test_omit():
     """Test that omit removes specified fields."""
-    result = omit(User, ('email',))
+    result = omit(User, ("email",))
 
-    expected = TypedDict("OmitUser", {
-        "name": str,
-        "age": int,
-    })
+    expected = TypedDict(
+        "OmitUser",
+        {
+            "name": str,
+            "age": int,
+        },
+    )
 
     assert td_eq(result, expected)
 
 
 def test_omit_multiple_fields():
     """Test that omit works with multiple fields."""
-    result = omit(User, ('age', 'email'))
+    result = omit(User, ("age", "email"))
 
-    expected = TypedDict("OmitUser", {
-        "name": str,
-    })
+    expected = TypedDict(
+        "OmitUser",
+        {
+            "name": str,
+        },
+    )
 
     assert td_eq(result, expected)
 
@@ -262,6 +295,7 @@ def test_non_nullable_only_none():
 
 def test_parameters():
     """Test that parameters extracts function parameter types."""
+
     def greet(name: str, age: int) -> str:
         return f"Hello {name}, age {age}"
 
@@ -282,6 +316,7 @@ def test_parameters_no_annotations():
 
 def test_return_type():
     """Test that return_type extracts function return type."""
+
     def greet(name: str) -> str:
         return f"Hello {name}"
 

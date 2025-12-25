@@ -7,13 +7,22 @@ useful for test-time type validation and constraint checking.
 Reference: https://www.typescriptlang.org/docs/handbook/utility-types.html
 """
 
-from typing import Any, Callable, Literal, TypeVar, Union, get_args, get_origin, get_type_hints
+from typing import (
+    Any,
+    Callable,
+    Literal,
+    TypeVar,
+    Union,
+    get_args,
+    get_origin,
+    get_type_hints,
+)
 from typing_extensions import NotRequired, ReadOnly, Required, TypedDict
 
 
-T = TypeVar('T')
-K = TypeVar('K')
-V = TypeVar('V')
+T = TypeVar("T")
+K = TypeVar("K")
+V = TypeVar("V")
 
 
 def partial(cls: type[T], *, name: str | None = None) -> type[T]:
@@ -319,6 +328,7 @@ def parameters(func: Callable[..., Any]) -> tuple[type, ...]:
         >>> # Result: (str, int)
     """
     import inspect
+
     sig = inspect.signature(func)
 
     param_types = []
@@ -350,6 +360,7 @@ def return_type(func: Callable[..., T]) -> type[T]:
         >>> # Result: str
     """
     import inspect
+
     sig = inspect.signature(func)
 
     if sig.return_annotation != inspect.Signature.empty:

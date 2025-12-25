@@ -11,6 +11,7 @@ from tytr._internal import _is_typeddict, _resolve_generic_typeddict, td_eq, td_
 # Error Classes
 # ============================================================================
 
+
 class DelimiterCollisionError(ValueError):
     """
     Raised when a delimiter occurs in the strings its supposed to delimit.
@@ -81,7 +82,7 @@ def key_of(tp: type) -> type:
         return str  # Unparameterized dict defaults to str keys
 
     # For other mapping types, try to extract key type from __class_getitem__
-    if hasattr(tp, '__annotations__'):
+    if hasattr(tp, "__annotations__"):
         # It's a regular class with annotations
         hints = get_type_hints(tp)
         keys = list(hints.keys())
@@ -131,6 +132,7 @@ def value_of(tp: type) -> type:
         if not value_types:
             # Empty TypedDict - no values
             from typing import Never
+
             return Never  # type: ignore
         elif len(value_types) == 1:
             return value_types[0]
@@ -145,10 +147,11 @@ def value_of(tp: type) -> type:
         if args and len(args) >= 2:
             return args[1]  # Return the value type
         from typing import Any
+
         return Any  # Unparameterized dict defaults to Any values
 
     # For other mapping types with annotations
-    if hasattr(tp, '__annotations__'):
+    if hasattr(tp, "__annotations__"):
         hints = get_type_hints(tp)
         value_types = list(hints.values())
         if value_types:
@@ -162,6 +165,7 @@ def value_of(tp: type) -> type:
 # ============================================================================
 # Core Type Transformation Functions
 # ============================================================================
+
 
 def flatten_fields(model_cls: type, prefix: str, key_delimiter: str) -> dict[str, type]:
     """
@@ -217,13 +221,17 @@ def flatten_fields(model_cls: type, prefix: str, key_delimiter: str) -> dict[str
         # Check if it's a generic TypedDict (e.g., WithV[int])
         if origin is not None:
             try:
-                if (isinstance(origin, type) and
-                    hasattr(origin, '__annotations__') and
-                    hasattr(origin, '__total__')):
+                if (
+                    isinstance(origin, type)
+                    and hasattr(origin, "__annotations__")
+                    and hasattr(origin, "__total__")
+                ):
                     # It's a specialized generic TypedDict
                     # We need to resolve the type parameters
                     should_flatten = True
-                    type_to_flatten = _resolve_generic_typeddict(origin, get_args(inner_type))
+                    type_to_flatten = _resolve_generic_typeddict(
+                        origin, get_args(inner_type)
+                    )
             except (TypeError, AttributeError):
                 pass
 
@@ -231,9 +239,11 @@ def flatten_fields(model_cls: type, prefix: str, key_delimiter: str) -> dict[str
         if not should_flatten:
             try:
                 # TypedDict classes have __annotations__ and are not regular classes
-                if (isinstance(inner_type, type) and
-                    hasattr(inner_type, '__annotations__') and
-                    hasattr(inner_type, '__total__')):
+                if (
+                    isinstance(inner_type, type)
+                    and hasattr(inner_type, "__annotations__")
+                    and hasattr(inner_type, "__total__")
+                ):
                     should_flatten = True
                     type_to_flatten = inner_type
             except (TypeError, AttributeError):
@@ -242,9 +252,11 @@ def flatten_fields(model_cls: type, prefix: str, key_delimiter: str) -> dict[str
         # Check if it's a regular class with annotations
         if not should_flatten:
             try:
-                if (isinstance(inner_type, type) and
-                    hasattr(inner_type, '__annotations__') and
-                    len(inner_type.__annotations__) > 0):
+                if (
+                    isinstance(inner_type, type)
+                    and hasattr(inner_type, "__annotations__")
+                    and len(inner_type.__annotations__) > 0
+                ):
                     should_flatten = True
                     type_to_flatten = inner_type
             except (TypeError, AttributeError):
@@ -266,7 +278,9 @@ def flatten_fields(model_cls: type, prefix: str, key_delimiter: str) -> dict[str
     return flattened
 
 
-def to_typeddict(cls: type, *, name: str | None = None, closed: bool | None = None) -> type:
+def to_typeddict(
+    cls: type, *, name: str | None = None, closed: bool | None = None
+) -> type:
     """
     Convert a Python class's annotations to a TypedDict without flattening.
 
@@ -307,7 +321,13 @@ def to_typeddict(cls: type, *, name: str | None = None, closed: bool | None = No
     return TypedDict(type_name, hints, closed=closed)  # type: ignore
 
 
-def flatten(cls: type, *, key_delimiter: str | None = None, name: str | None = None, closed: bool | None = None) -> type:
+def flatten(
+    cls: type,
+    *,
+    key_delimiter: str | None = None,
+    name: str | None = None,
+    closed: bool | None = None,
+) -> type:
     """
     Create a TypedDict from a Python class definition, flattening nested structures.
 

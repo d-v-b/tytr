@@ -126,7 +126,7 @@ def test_td_diff_extra_field() -> None:
 
 def test_assert_type_equals_success() -> None:
     """Test assert_type_equals with equal types."""
-    from tytr._internal import assert_type_equals
+    from tytr.testing import assert_type_equals
 
     TD1 = TypedDict("MyDict", {"x": int})
     TD2 = TypedDict("MyDict", {"x": int})
@@ -137,7 +137,7 @@ def test_assert_type_equals_success() -> None:
 
 def test_assert_type_equals_failure() -> None:
     """Test assert_type_equals with different types."""
-    from tytr._internal import assert_type_equals
+    from tytr.testing import assert_type_equals
 
     TD1 = TypedDict("MyDict", {"x": int})
     TD2 = TypedDict("MyDict", {"x": str})
@@ -150,7 +150,7 @@ def test_assert_type_equals_failure() -> None:
 
 def test_make_type_test_basic() -> None:
     """Test make_type_test with basic to_typeddict."""
-    from tytr._internal import make_type_test
+    from tytr.testing import make_type_test
 
     class User:
         name: str
@@ -170,7 +170,7 @@ def test_make_type_test_basic() -> None:
 
 def test_make_type_test_with_transform() -> None:
     """Test make_type_test with a transformation."""
-    from tytr._internal import make_type_test
+    from tytr.testing import make_type_test
     from typing_extensions import NotRequired
 
     class User:
@@ -181,7 +181,7 @@ def test_make_type_test_with_transform() -> None:
         name: NotRequired[str]
         age: NotRequired[int]
 
-    test_func = make_type_test(User, UserPartial, transform='partial')
+    test_func = make_type_test(User, UserPartial, transform="partial")
     assert callable(test_func)
 
     # Should not raise
@@ -190,7 +190,7 @@ def test_make_type_test_with_transform() -> None:
 
 def test_make_type_test_failure() -> None:
     """Test that make_type_test generates a function that fails appropriately."""
-    from tytr._internal import make_type_test
+    from tytr.testing import make_type_test
 
     class User:
         name: str

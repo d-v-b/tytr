@@ -13,11 +13,13 @@ from tytr._internal import td_eq
 # Tests for flatten()
 # ============================================================================
 
+
 @pytest.mark.parametrize("delimiter", [None, ".", "/"])
 def test_delimeter(delimiter: str | None) -> None:
     """
     Test that the keys of the generated typeddict use the specified delimiter.
     """
+
     class Child:
         x: float
         y: float
@@ -55,13 +57,16 @@ def test_pydantic() -> None:
 
     result = flatten(MyModel)
 
-    expected = TypedDict("MyModel", {
-        "a": int,
-        "b": str,
-        "c": ChildModel,
-        "c_x": float,
-        "c_y": float,
-    })
+    expected = TypedDict(
+        "MyModel",
+        {
+            "a": int,
+            "b": str,
+            "c": ChildModel,
+            "c_x": float,
+            "c_y": float,
+        },
+    )
 
     assert td_eq(result, expected)
 
@@ -70,6 +75,7 @@ def test_requirement() -> None:
     """
     Test that the Required and NotRequired annotations are propagated correctly.
     """
+
     class C(TypedDict):
         d: Required[float]
         e: NotRequired[bool]
@@ -95,6 +101,7 @@ def test_delimiter_collision() -> None:
     """
     Test that a delimiter collision raises an appropriate error.
     """
+
     class Child:
         x_y: float
 
@@ -103,7 +110,10 @@ def test_delimiter_collision() -> None:
         b: str
         c: Child
 
-    with pytest.raises(DelimiterCollisionError, match="The delimiter '_' occurs in the field name 'x_y' on the class Child"):
+    with pytest.raises(
+        DelimiterCollisionError,
+        match="The delimiter '_' occurs in the field name 'x_y' on the class Child",
+    ):
         flatten(MyClass, key_delimiter="_")
 
 
@@ -134,8 +144,10 @@ def test_generic() -> None:
 # Tests for to_typeddict()
 # ============================================================================
 
+
 def test_simple_class():
     """Test converting a simple class to TypedDict."""
+
     class User:
         name: str
         age: int
@@ -143,11 +155,14 @@ def test_simple_class():
 
     result = to_typeddict(User)
 
-    expected = TypedDict("User", {
-        "name": str,
-        "age": int,
-        "email": str,
-    })
+    expected = TypedDict(
+        "User",
+        {
+            "name": str,
+            "age": int,
+            "email": str,
+        },
+    )
 
     assert td_eq(result, expected)
     assert result.__name__ == "User"
@@ -155,6 +170,7 @@ def test_simple_class():
 
 def test_with_custom_name():
     """Test that custom name is respected."""
+
     class User:
         name: str
         age: int
@@ -165,6 +181,7 @@ def test_with_custom_name():
 
 def test_pydantic_model():
     """Test converting a Pydantic model to TypedDict."""
+
     class Product(BaseModel):
         id: int
         title: str
@@ -172,33 +189,41 @@ def test_pydantic_model():
 
     result = to_typeddict(Product)
 
-    expected = TypedDict("Product", {
-        "id": int,
-        "title": str,
-        "price": float,
-    })
+    expected = TypedDict(
+        "Product",
+        {
+            "id": int,
+            "title": str,
+            "price": float,
+        },
+    )
 
     assert td_eq(result, expected)
 
 
 def test_preserves_required_notrequired():
     """Test that Required/NotRequired annotations are preserved."""
+
     class PartialUser(TypedDict):
         name: Required[str]
         age: NotRequired[int]
 
     result = to_typeddict(PartialUser)
 
-    expected = TypedDict("PartialUser", {
-        "name": Required[str],
-        "age": NotRequired[int],
-    })
+    expected = TypedDict(
+        "PartialUser",
+        {
+            "name": Required[str],
+            "age": NotRequired[int],
+        },
+    )
 
     assert td_eq(result, expected)
 
 
 def test_nested_not_flattened():
     """Test that nested structures are NOT flattened."""
+
     class Address:
         street: str
         city: str
@@ -209,10 +234,13 @@ def test_nested_not_flattened():
 
     result = to_typeddict(Person)
 
-    expected = TypedDict("Person", {
-        "name": str,
-        "address": Address,
-    })
+    expected = TypedDict(
+        "Person",
+        {
+            "name": str,
+            "address": Address,
+        },
+    )
 
     assert td_eq(result, expected)
 
@@ -223,6 +251,7 @@ def test_nested_not_flattened():
 
 def test_closed_parameter():
     """Test that closed parameter is passed through."""
+
     class User:
         name: str
         age: int
@@ -233,11 +262,12 @@ def test_closed_parameter():
     assert result.__name__ == "User"
 
     # The closed attribute should be set
-    assert getattr(result, '__closed__', None) is True
+    assert getattr(result, "__closed__", None) is True
 
 
 def test_empty_class():
     """Test converting a class with no annotations."""
+
     class Empty:
         pass
 
@@ -249,6 +279,7 @@ def test_empty_class():
 
 def test_complex_types():
     """Test that complex type annotations are preserved."""
+
     class ComplexTypes:
         items: List[str]
         mapping: Dict[str, int]
@@ -256,17 +287,21 @@ def test_complex_types():
 
     result = to_typeddict(ComplexTypes)
 
-    expected = TypedDict("ComplexTypes", {
-        "items": List[str],
-        "mapping": Dict[str, int],
-        "optional": Optional[float],
-    })
+    expected = TypedDict(
+        "ComplexTypes",
+        {
+            "items": List[str],
+            "mapping": Dict[str, int],
+            "optional": Optional[float],
+        },
+    )
 
     assert td_eq(result, expected)
 
 
 def test_comparison_with_flatten():
     """Test to show the difference between to_typeddict and flatten."""
+
     class Address:
         street: str
         city: str
@@ -291,8 +326,10 @@ def test_comparison_with_flatten():
 # Tests for key_of()
 # ============================================================================
 
+
 def test_key_of_typeddict() -> None:
     """Test key_of with a TypedDict."""
+
     class Person(TypedDict):
         name: str
         age: int
@@ -300,17 +337,18 @@ def test_key_of_typeddict() -> None:
 
     result = key_of(Person)
     # Should be Literal['name', 'age', 'email']
-    assert get_args(result) == ('name', 'age', 'email')
+    assert get_args(result) == ("name", "age", "email")
 
 
 def test_key_of_single_key_typeddict() -> None:
     """Test key_of with a single-key TypedDict."""
+
     class Single(TypedDict):
         value: int
 
     result = key_of(Single)
     # Should be Literal['value']
-    assert get_args(result) == ('value',)
+    assert get_args(result) == ("value",)
 
 
 def test_key_of_dict_type() -> None:
@@ -327,6 +365,7 @@ def test_key_of_dict_with_int_keys() -> None:
 
 def test_key_of_nested_typeddict() -> None:
     """Test key_of with nested TypedDict (should only return top-level keys)."""
+
     class Address(TypedDict):
         street: str
         city: str
@@ -337,8 +376,8 @@ def test_key_of_nested_typeddict() -> None:
 
     result = key_of(Person)
     args = get_args(result)
-    assert 'name' in args
-    assert 'address' in args
+    assert "name" in args
+    assert "address" in args
     assert len(args) == 2
     # Should NOT include 'street' or 'city'
 
@@ -347,8 +386,10 @@ def test_key_of_nested_typeddict() -> None:
 # Tests for value_of()
 # ============================================================================
 
+
 def test_value_of_typeddict() -> None:
     """Test value_of with a TypedDict."""
+
     class Person(TypedDict):
         name: str
         age: int
@@ -365,6 +406,7 @@ def test_value_of_typeddict() -> None:
 
 def test_value_of_single_value_typeddict() -> None:
     """Test value_of with a single value type TypedDict."""
+
     class AllStrings(TypedDict):
         first: str
         second: str
@@ -400,6 +442,7 @@ def test_value_of_dict_with_multiple_types() -> None:
 
 def test_value_of_nested_typeddict() -> None:
     """Test value_of with nested TypedDict."""
+
     class Address(TypedDict):
         street: str
         city: str
