@@ -4,7 +4,7 @@ Flatyd generate flat typed dicts from nested data structures. Use these generate
 
 ## Why
 
-Consider this a motivating example: we have an application that has a nested configuration. 
+Consider this a motivating example: we have an application that has a nested configuration.
 
 ```python
 class S3Config:
@@ -29,14 +29,14 @@ Suppose we want a *flat* API for accessing our configuration. Like this:
 ```python
 
 # Get MainConfig.s3.region
-MainConfig.get('s3.region') 
+MainConfig.get('s3.region')
 
 # update MainConfig.runtime.num_threads
-MainConfig.set('runtime.num_threads', 3) 
+MainConfig.set('runtime.num_threads', 3)
 ```
 
-How can we make this API type-safe? To inform the type checker that `get("runtime.num_threads")` should 
-return an `int`, we need to define some types. Here's what the types would look like for a 
+How can we make this API type-safe? To inform the type checker that `get("runtime.num_threads")` should
+return an `int`, we need to define some types. Here's what the types would look like for a
 flattened API in this example:
 
 ```python
@@ -45,21 +45,21 @@ from typing import overload, TypeAlias
 
 MainConfigFlatyd = TypedDict(
     'MainConfigDict', {
-        'runtime': "RuntimeConfig", 
-        'runtime.max_mem_gb': int, 
+        'runtime': "RuntimeConfig",
+        'runtime.max_mem_gb': int,
         'runtime.num_threads': int,
-         's3': "S3Config", 
-         's3.region': str, 
-         's3.endpoint_url': str, 
+         's3': "S3Config",
+         's3.region': str,
+         's3.endpoint_url': str,
          's3.access_key_id': str})
 
 MainConfigFlatydKey = Literal[
-    "runtime", 
-    "runtime.max_mem_gb", 
-    "runtime.num_threads", 
-    "s3", 
-    "s3.region", 
-    "s3.endpoint_url", 
+    "runtime",
+    "runtime.max_mem_gb",
+    "runtime.num_threads",
+    "s3",
+    "s3.region",
+    "s3.endpoint_url",
     "s3.access_key_id"
     ]
 """Valid keys for querying the flattened TypedDict."""
@@ -107,7 +107,7 @@ class MainConfigFlatydSetter(Protocol):
 ```
 
 This is a *lot* of boilerplate, and it will quickly become a burden if we make changes to `MainConfig`.
-Ideally, the Python type system would copy TypeScript and provide operators that make it easy to 
+Ideally, the Python type system would copy TypeScript and provide operators that make it easy to
 define these types directly in the type system. But until then, we have to write the types explicitly.
 That's where Flatyd is useful: it generates utility types for a flat representation of an original nested type.
 
