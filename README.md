@@ -51,5 +51,4 @@ class FoodictProtocol(Protocol):
 
 ## Testing types
 
-`tytr` provides simple tools for checking type relationships at test time. See 
-
+`tytr` provides simple tools for checking type relationships at test time. See

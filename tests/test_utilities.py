@@ -1,7 +1,7 @@
 """Tests for TypeScript-style utility types."""
 from __future__ import annotations
 
-from typing import NotRequired, Required, Union
+from typing import NotRequired, Required
 
 import pytest
 from typing_extensions import TypedDict
@@ -193,7 +193,7 @@ def test_pick_single_field():
 
 def test_pick_missing_key():
     """Test that pick raises error for missing keys."""
-    with pytest.raises(ValueError, match="Keys {'missing'} not found"):
+    with pytest.raises(ValueError, match=r"Keys \{'missing'\} not found"):
         pick(User, ("name", "missing"))
 
 
@@ -228,23 +228,23 @@ def test_omit_multiple_fields():
 
 def test_exclude():
     """Test that exclude removes types from a Union."""
-    union_type = Union[str, int, bool]
+    union_type = str | int | bool
     result = exclude(union_type, bool)
 
-    assert result == Union[str, int]
+    assert result == str | int
 
 
 def test_exclude_single_type():
     """Test that exclude works on non-union types."""
     result = exclude(str, int)
-    assert result == str
+    assert result is str
 
 
 def test_exclude_all():
     """Test that exclude raises error when excluding all types."""
     # Exclude one type at a time to remove both
-    result = exclude(Union[str, int], str)
-    assert result == int
+    result = exclude(str | int, str)
+    assert result is int
 
     # Now test excluding the only remaining type
     with pytest.raises(ValueError, match="Cannot exclude"):
@@ -253,25 +253,25 @@ def test_exclude_all():
 
 def test_extract():
     """Test that extract keeps only specified types from a Union."""
-    union_type = Union[str, int, bool]
+    union_type = str | int | bool
     result = extract(union_type, str)
 
-    assert result == str
+    assert result is str
 
 
 def test_extract_not_found():
     """Test that extract raises error when type not found."""
-    union_type = Union[str, int]
-    with pytest.raises(ValueError, match="Type .* not found"):
+    union_type = str | int
+    with pytest.raises(ValueError, match=r"Type .* not found"):
         extract(union_type, bool)
 
 
 def test_non_nullable():
     """Test that non_nullable removes None from Union."""
-    nullable_type = Union[str, None]
+    nullable_type = str | None
     result = non_nullable(nullable_type)
 
-    assert result == str
+    assert result is str
 
 
 def test_non_nullable_union():

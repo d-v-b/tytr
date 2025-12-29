@@ -95,8 +95,9 @@ def _is_typeddict(tp: type) -> bool:
 
 def td_repr(td: typing_extensions._TypedDictMeta) -> str:
     """
-    Return a string representation of a TypedDict including its name, fields, types, and parameters.
+    Return a string representation of a TypedDict.
 
+    Includes its name, fields, types, and parameters.
     Internal helper for testing and debugging.
     """
     lines = [f"TypedDict {td.__name__}("]

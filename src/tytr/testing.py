@@ -1,9 +1,7 @@
 """Testing utilities for validating type transformations."""
 from __future__ import annotations
 
-from typing import Callable
-
-import typing_extensions
+from collections.abc import Callable
 
 from tytr._internal import td_diff, td_eq
 

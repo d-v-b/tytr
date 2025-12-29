@@ -289,7 +289,7 @@ def cmd_gen(args: argparse.Namespace) -> int:
         # Parse the target (file_path::class_name)
         if "::" not in args.target:
             print(
-                f"Error: Target must be in format 'path/to/file.py::ClassName'",
+                "Error: Target must be in format 'path/to/file.py::ClassName'",
                 file=sys.stderr,
             )
             return 1
@@ -340,7 +340,17 @@ def main() -> int:
     )
     gen_parser.add_argument(
         "transformation",
-        choices=["typeddict", "key_of", "value_of", "getter", "setter", "flatten", "partial", "required", "readonly"],
+        choices=[
+            "typeddict",
+            "key_of",
+            "value_of",
+            "getter",
+            "setter",
+            "flatten",
+            "partial",
+            "required",
+            "readonly",
+        ],
         help="Type transformation to apply",
     )
     gen_parser.add_argument(

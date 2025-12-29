@@ -8,6 +8,7 @@ Reference: https://www.typescriptlang.org/docs/handbook/utility-types.html
 """
 from __future__ import annotations
 
+import types
 from collections.abc import Callable
 from typing import (
     Any,
@@ -237,9 +238,14 @@ def omit(cls: type[T], keys: tuple[str, ...], *, name: str | None = None) -> typ
     return TypedDict(type_name, omitted_fields)  # type: ignore
 
 
-def exclude(union_type: type, excluded_type: type) -> type:
+def exclude(
+    union_type: type | types.UnionType, excluded_type: type
+) -> type | types.UnionType:
     """
-    Constructs a type by excluding from UnionType all union members that are assignable to ExcludedMembers.
+    Exclude types from a Union.
+
+    Constructs a type by excluding from UnionType all union members that are
+    assignable to ExcludedMembers.
 
     TypeScript equivalent: Exclude<UnionType, ExcludedMembers>
 
@@ -257,7 +263,8 @@ def exclude(union_type: type, excluded_type: type) -> type:
     """
     origin = get_origin(union_type)
 
-    if origin is Union:
+    # Check if it's a Union - handles both typing.Union and types.UnionType (from |)
+    if origin is Union or origin is types.UnionType:
         args = get_args(union_type)
         # Filter out the excluded types
         filtered = [arg for arg in args if arg != excluded_type]
@@ -267,7 +274,10 @@ def exclude(union_type: type, excluded_type: type) -> type:
         elif len(filtered) == 1:
             return filtered[0]
         else:
-            return Union[tuple(filtered)]  # type: ignore
+            from functools import reduce
+            from operator import or_
+
+            return reduce(or_, filtered)  # type: ignore
     else:
         # Not a union, check if it matches excluded_type
         if union_type == excluded_type:
@@ -275,9 +285,14 @@ def exclude(union_type: type, excluded_type: type) -> type:
         return union_type
 
 
-def extract(union_type: type, extracted_type: type) -> type:
+def extract(
+    union_type: type | types.UnionType, extracted_type: type
+) -> type | types.UnionType:
     """
-    Constructs a type by extracting from UnionType all union members that are assignable to Union.
+    Extract types from a Union.
+
+    Constructs a type by extracting from UnionType all union members that are
+    assignable to Union.
 
     TypeScript equivalent: Extract<UnionType, Union>
 
@@ -295,7 +310,8 @@ def extract(union_type: type, extracted_type: type) -> type:
     """
     origin = get_origin(union_type)
 
-    if origin is Union:
+    # Check if it's a Union - handles both typing.Union and types.UnionType (from |)
+    if origin is Union or origin is types.UnionType:
         args = get_args(union_type)
         # Keep only the types matching extracted_type
         filtered = [arg for arg in args if arg == extracted_type]
@@ -305,7 +321,10 @@ def extract(union_type: type, extracted_type: type) -> type:
         elif len(filtered) == 1:
             return filtered[0]
         else:
-            return Union[tuple(filtered)]  # type: ignore
+            from functools import reduce
+            from operator import or_
+
+            return reduce(or_, filtered)  # type: ignore
     else:
         # Not a union, check if it matches extracted_type
         if union_type == extracted_type:
@@ -313,7 +332,7 @@ def extract(union_type: type, extracted_type: type) -> type:
         raise ValueError(f"Type {extracted_type} not found")
 
 
-def non_nullable(t: type) -> type:
+def non_nullable(t: type | types.UnionType) -> type | types.UnionType:
     """
     Constructs a type by excluding None from T.
 
@@ -330,8 +349,6 @@ def non_nullable(t: type) -> type:
         >>> NonNullableT = non_nullable(T)
         >>> # Result: str
     """
-    import types
-
     origin = get_origin(t)
 
     # Check if it's a Union - handles both typing.Union and types.UnionType (from |)
@@ -346,7 +363,10 @@ def non_nullable(t: type) -> type:
         elif len(filtered) == 1:
             return filtered[0]
         else:
-            return Union[tuple(filtered)]  # type: ignore
+            from functools import reduce
+            from operator import or_
+
+            return reduce(or_, filtered)  # type: ignore
     else:
         # Not a union, return as is (unless it's None itself)
         if t is type(None):

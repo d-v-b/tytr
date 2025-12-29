@@ -5,7 +5,6 @@ from typing import (
     Literal,
     NotRequired,
     Required,
-    Union,
     get_args,
     get_origin,
     get_type_hints,
@@ -146,7 +145,10 @@ def value_of(tp: type) -> type:
             return value_types[0]
         else:
             # Create a Union of all value types
-            return Union[tuple(value_types)]  # type: ignore
+            from functools import reduce
+            from operator import or_
+
+            return reduce(or_, value_types)  # type: ignore
 
     # Check if it's a generic dict type (dict[K, V])
     origin = get_origin(tp)
@@ -165,7 +167,10 @@ def value_of(tp: type) -> type:
         if value_types:
             if len(value_types) == 1:
                 return value_types[0]
-            return Union[tuple(value_types)]  # type: ignore
+            from functools import reduce
+            from operator import or_
+
+            return reduce(or_, value_types)  # type: ignore
 
     raise TypeError(f"Cannot extract value type from {tp}")
 
@@ -214,8 +219,10 @@ def flatten_fields(
         # Check for delimiter collision
         if key_delimiter in field_name:
             raise DelimiterCollisionError(
-                f"The delimiter '{key_delimiter}' occurs in the field name '{field_name}' on the class {model_cls.__name__}. "
-                f"Use a different delimiter or rename the field to avoid this conflict."
+                f"The delimiter '{key_delimiter}' occurs in the field name "
+                f"'{field_name}' on the class {model_cls.__name__}. "
+                f"Use a different delimiter or rename the field to avoid "
+                f"this conflict."
             )
 
         full_key = f"{prefix}{key_delimiter}{field_name}" if prefix else field_name
@@ -288,7 +295,11 @@ def flatten_fields(
             flattened[full_key] = field_type
             # Recursively flatten nested model
             nested_fields = flatten_fields(
-                type_to_flatten, full_key, key_delimiter, localns=localns, globalns=globalns
+                type_to_flatten,
+                full_key,
+                key_delimiter,
+                localns=localns,
+                globalns=globalns,
             )
             # Re-wrap each nested field with the same wrapper if present
             if wrapper is not None:
