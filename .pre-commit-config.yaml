@@ -19,9 +19,7 @@ repos:
   - repo: https://github.com/python-jsonschema/check-jsonschema
     rev: 0.34.0
     hooks:
-      - id: check-dependabot
       - id: check-github-workflows
-      - id: check-readthedocs
   - repo: https://github.com/abravalheri/validate-pyproject
     rev: v0.24.1
     hooks:
