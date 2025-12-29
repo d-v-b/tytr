@@ -1,9 +1,19 @@
+"""Testing utilities for validating type transformations."""
+from __future__ import annotations
+
 from typing import Callable
+
+import typing_extensions
 
 from tytr._internal import td_diff, td_eq
 
 
-def assert_type_equals(actual: type, expected: type, *, msg: str | None = None) -> None:
+def assert_type_equals(
+    actual: type,
+    expected: type,
+    *,
+    msg: str | None = None,
+) -> None:
     """
     Assert that two TypedDict types are equal, with helpful error messages.
 
@@ -103,8 +113,8 @@ def make_type_test(
     to a TypedDict, then applies the specified transformation if any.
     """
     # Import here to avoid circular imports
-    from tytr.core import to_typeddict
     import tytr.utilities as utilities
+    from tytr.core import to_typeddict
 
     # Determine the transformation function
     if transform is None:
@@ -116,24 +126,25 @@ def make_type_test(
     elif isinstance(transform, str):
         # Look up the function by name
         if not hasattr(utilities, transform):
-            raise ValueError(f"Unknown transformation: {transform}")
+            msg = f"Unknown transformation: {transform}"
+            raise ValueError(msg)
         transform_name = transform
         base_transform = getattr(utilities, transform)
 
         # Chain: to_typeddict first, then the transformation
         def transform_func(cls: type) -> type:
-            # Need to match the expected type's name
             base_td = to_typeddict(cls)
-            result = base_transform(base_td, name=expected_type.__name__)
-            return result
+            return base_transform(base_td, name=expected_type.__name__)
+
     elif callable(transform):
-        # Custom transformation
-        transform_func = transform
+        # Custom transformation - wrap to ensure consistent signature
+        def transform_func(cls: type) -> type:
+            return transform(cls)
+
         transform_name = getattr(transform, "__name__", "custom")
     else:
-        raise TypeError(
-            f"transform must be None, str, or callable, got {type(transform)}"
-        )
+        msg = f"transform must be None, str, or callable, got {type(transform)}"
+        raise TypeError(msg)
 
     # Generate test function name
     if test_name is None:
@@ -153,3 +164,9 @@ def make_type_test(
     # Set the function name for pytest
     test_func.__name__ = test_name
     return test_func
+
+
+__all__ = [
+    "assert_type_equals",
+    "make_type_test",
+]

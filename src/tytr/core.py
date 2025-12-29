@@ -1,11 +1,19 @@
 """Core type transformation functions for tytr."""
+from __future__ import annotations
 
-from typing import Union, get_args, get_origin, get_type_hints, Literal
-from typing_extensions import TypedDict, NotRequired, Required
-import typing_extensions
+from typing import (
+    Literal,
+    NotRequired,
+    Required,
+    Union,
+    get_args,
+    get_origin,
+    get_type_hints,
+)
 
-from tytr._internal import _is_typeddict, _resolve_generic_typeddict, td_eq, td_repr
+from typing_extensions import TypedDict
 
+from tytr._internal import _is_typeddict, _resolve_generic_typeddict
 
 # ============================================================================
 # Error Classes
@@ -61,7 +69,7 @@ def key_of(tp: type) -> type:
     # Check if it's a TypedDict
     if _is_typeddict(tp):
         # Get the keys from the TypedDict
-        hints = get_type_hints(tp)
+        hints = get_type_hints(tp, include_extras=True)
         keys = list(hints.keys())
 
         if not keys:
@@ -84,7 +92,7 @@ def key_of(tp: type) -> type:
     # For other mapping types, try to extract key type from __class_getitem__
     if hasattr(tp, "__annotations__"):
         # It's a regular class with annotations
-        hints = get_type_hints(tp)
+        hints = get_type_hints(tp, include_extras=True)
         keys = list(hints.keys())
         if keys:
             return Literal[tuple(keys)]  # type: ignore
@@ -126,7 +134,7 @@ def value_of(tp: type) -> type:
     # Check if it's a TypedDict
     if _is_typeddict(tp):
         # Get the value types from the TypedDict
-        hints = get_type_hints(tp)
+        hints = get_type_hints(tp, include_extras=True)
         value_types = list(hints.values())
 
         if not value_types:
@@ -152,7 +160,7 @@ def value_of(tp: type) -> type:
 
     # For other mapping types with annotations
     if hasattr(tp, "__annotations__"):
-        hints = get_type_hints(tp)
+        hints = get_type_hints(tp, include_extras=True)
         value_types = list(hints.values())
         if value_types:
             if len(value_types) == 1:
@@ -167,7 +175,13 @@ def value_of(tp: type) -> type:
 # ============================================================================
 
 
-def flatten_fields(model_cls: type, prefix: str, key_delimiter: str) -> dict[str, type]:
+def flatten_fields(
+    model_cls: type,
+    prefix: str,
+    key_delimiter: str,
+    localns: dict[str, object] | None = None,
+    globalns: dict[str, object] | None = None,
+) -> dict[str, type]:
     """
     Recursively flatten fields from a model class.
 
@@ -179,6 +193,10 @@ def flatten_fields(model_cls: type, prefix: str, key_delimiter: str) -> dict[str
         The prefix to prepend to field names
     key_delimiter : str
         The delimiter to use between nested field names
+    localns : dict, optional
+        Local namespace for resolving type annotations
+    globalns : dict, optional
+        Global namespace for resolving type annotations
 
     Returns
     -------
@@ -187,7 +205,10 @@ def flatten_fields(model_cls: type, prefix: str, key_delimiter: str) -> dict[str
     """
 
     flattened = {}
-    hints = get_type_hints(model_cls, include_extras=True)
+    # Use get_type_hints to resolve ForwardRefs
+    hints = get_type_hints(
+        model_cls, globalns=globalns, localns=localns, include_extras=True
+    )
 
     for field_name, field_type in hints.items():
         # Check for delimiter collision
@@ -230,7 +251,7 @@ def flatten_fields(model_cls: type, prefix: str, key_delimiter: str) -> dict[str
                     # We need to resolve the type parameters
                     should_flatten = True
                     type_to_flatten = _resolve_generic_typeddict(
-                        origin, get_args(inner_type)
+                        origin, get_args(inner_type), localns=localns, globalns=globalns
                     )
             except (TypeError, AttributeError):
                 pass
@@ -266,7 +287,9 @@ def flatten_fields(model_cls: type, prefix: str, key_delimiter: str) -> dict[str
             # Keep the nested object itself
             flattened[full_key] = field_type
             # Recursively flatten nested model
-            nested_fields = flatten_fields(type_to_flatten, full_key, key_delimiter)
+            nested_fields = flatten_fields(
+                type_to_flatten, full_key, key_delimiter, localns=localns, globalns=globalns
+            )
             # Re-wrap each nested field with the same wrapper if present
             if wrapper is not None:
                 nested_fields = {k: wrapper[v] for k, v in nested_fields.items()}
@@ -279,7 +302,12 @@ def flatten_fields(model_cls: type, prefix: str, key_delimiter: str) -> dict[str
 
 
 def to_typeddict(
-    cls: type, *, name: str | None = None, closed: bool | None = None
+    cls: type,
+    *,
+    name: str | None = None,
+    closed: bool | None = None,
+    localns: dict[str, object] | None = None,
+    globalns: dict[str, object] | None = None,
 ) -> type:
     """
     Convert a Python class's annotations to a TypedDict without flattening.
@@ -295,6 +323,10 @@ def to_typeddict(
         Custom name for the resulting TypedDict (defaults to cls.__name__)
     closed : bool, optional
         Whether the TypedDict should be closed (PEP 728)
+    localns : dict, optional
+        Local namespace for resolving type annotations (pass locals())
+    globalns : dict, optional
+        Global namespace for resolving type annotations (pass globals())
 
     Returns
     -------
@@ -315,8 +347,17 @@ def to_typeddict(
     ...     title: str
     >>> ProductDict = to_typeddict(Product)
     >>> # ProductDict preserves the exact field types from Pydantic model
+
+    Notes
+    -----
+    When using `from __future__ import annotations` with classes defined in local
+    scopes (e.g., inside functions), pass `localns=locals()` and `globalns=globals()`
+    to resolve type annotations correctly.
     """
-    hints = get_type_hints(cls, include_extras=True)
+    # Use get_type_hints to resolve ForwardRefs
+    hints = get_type_hints(
+        cls, globalns=globalns, localns=localns, include_extras=True
+    )
     type_name = name if name is not None else cls.__name__
     return TypedDict(type_name, hints, closed=closed)  # type: ignore
 
@@ -327,6 +368,8 @@ def flatten(
     key_delimiter: str | None = None,
     name: str | None = None,
     closed: bool | None = None,
+    localns: dict[str, object] | None = None,
+    globalns: dict[str, object] | None = None,
 ) -> type:
     """
     Create a TypedDict from a Python class definition, flattening nested structures.
@@ -344,6 +387,10 @@ def flatten(
         Custom name for the resulting TypedDict
     closed : bool, optional
         Whether the TypedDict should be closed (PEP 728)
+    localns : dict, optional
+        Local namespace for resolving type annotations (pass locals())
+    globalns : dict, optional
+        Global namespace for resolving type annotations (pass globals())
 
     Returns
     -------
@@ -360,12 +407,20 @@ def flatten(
     ...     address: Address
     >>> FlatPerson = flatten(Person)
     >>> # FlatPerson has: name, address, address_street, address_city
+
+    Notes
+    -----
+    When using `from __future__ import annotations` with classes defined in local
+    scopes (e.g., inside functions), pass `localns=locals()` and `globalns=globals()`
+    to resolve type annotations correctly.
     """
     if key_delimiter is None:
         td_delimiter = "_"
     else:
         td_delimiter = key_delimiter
-    flattened_fields = flatten_fields(cls, key_delimiter=td_delimiter, prefix="")
+    flattened_fields = flatten_fields(
+        cls, key_delimiter=td_delimiter, prefix="", localns=localns, globalns=globalns
+    )
     if name is None:
         td_name = cls.__name__
     else:

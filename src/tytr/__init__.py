@@ -1,6 +1,8 @@
-from .core import flatten, to_typeddict, key_of, value_of
+from __future__ import annotations
+
+from .core import flatten, key_of, to_typeddict, value_of
+from .testing import assert_type_equals, make_type_test
 from .utilities import (
-    awaited,
     exclude,
     extract,
     non_nullable,
@@ -14,16 +16,15 @@ from .utilities import (
 )
 
 __all__ = [
-    # Core transformation
-    "flatten",
-    "to_typeddict",
-    # Type inspection utilities
-    "key_of",
-    "value_of",
-    # TypeScript-style utility types
-    "awaited",
+    # Testing utilities
+    "assert_type_equals",
     "exclude",
     "extract",
+    # Core transformation
+    "flatten",
+    # Type inspection utilities
+    "key_of",
+    "make_type_test",
     "non_nullable",
     "omit",
     "parameters",
@@ -32,4 +33,6 @@ __all__ = [
     "readonly",
     "required",
     "return_type",
+    "to_typeddict",
+    "value_of",
 ]

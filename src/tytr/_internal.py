@@ -1,8 +1,10 @@
 """Internal utility functions - not part of the public API."""
+from __future__ import annotations
 
 from typing import Generic, TypeVar, get_args, get_origin, get_type_hints
-from typing_extensions import get_original_bases
+
 import typing_extensions
+from typing_extensions import get_original_bases
 
 
 def _substitute_type_vars(type_hint, type_map: dict):
@@ -30,7 +32,10 @@ def _substitute_type_vars(type_hint, type_map: dict):
 
 
 def _resolve_generic_typeddict(
-    generic_class: type, type_args: tuple[object, ...]
+    generic_class: type,
+    type_args: tuple[object, ...],
+    localns: dict[str, object] | None = None,
+    globalns: dict[str, object] | None = None,
 ) -> type:
     """
     Resolve a generic TypedDict by substituting type parameters with concrete types.
@@ -52,10 +57,12 @@ def _resolve_generic_typeddict(
                 type_params.extend(get_args(base))
 
     # Create a mapping from type variables to concrete types
-    type_map = dict(zip(type_params, type_args))
+    type_map = dict(zip(type_params, type_args, strict=False))
 
     # Get annotations with generics included
-    annotations = get_type_hints(generic_class, include_extras=True)
+    annotations = get_type_hints(
+        generic_class, globalns=globalns, localns=localns, include_extras=True
+    )
 
     # Substitute type variables with concrete types
     resolved_annotations = {}
@@ -105,12 +112,30 @@ def td_eq(a: typing_extensions._TypedDictMeta, b: type) -> bool:
 
     Internal helper used for test assertions.
     """
+    # Check if both are TypedDict types by checking for TypedDict-specific attributes
+    is_a_typeddict = hasattr(a, "__annotations__") and hasattr(a, "__closed__")
+    is_b_typeddict = hasattr(b, "__annotations__") and hasattr(b, "__closed__")
+
+    # If neither is a TypedDict, just compare them directly
+    if not is_a_typeddict and not is_b_typeddict:
+        return a == b
+
+    # If only one is a TypedDict, they're not equal
+    if is_a_typeddict != is_b_typeddict:
+        return False
+
+    # Both are TypedDicts, compare them properly
     if a.__name__ != b.__name__:
         return False
-    if a.__annotations__.keys() != b.__annotations__.keys():
+
+    # Use get_type_hints to resolve any ForwardRefs from deferred annotations
+    a_hints = get_type_hints(a, include_extras=True)
+    b_hints = get_type_hints(b, include_extras=True)
+
+    if a_hints.keys() != b_hints.keys():
         return False
-    for key in a.__annotations__.keys():
-        if a.__annotations__[key] != b.__annotations__[key]:
+    for key in a_hints.keys():
+        if a_hints[key] != b_hints[key]:
             return False
     if a.__closed__ != b.__closed__:
         return False
@@ -156,9 +181,9 @@ def td_diff(a: typing_extensions._TypedDictMeta, b: type) -> str:
     if a.__name__ != b.__name__:
         differences.append(f"Different names: '{a.__name__}' != '{b.__name__}'")
 
-    # Get annotations
-    a_annots = a.__annotations__
-    b_annots = b.__annotations__
+    # Use get_type_hints to resolve any ForwardRefs from deferred annotations
+    a_annots = get_type_hints(a, include_extras=True)
+    b_annots = get_type_hints(b, include_extras=True)
 
     # Check for missing/extra fields
     a_keys = set(a_annots.keys())

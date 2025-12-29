@@ -6,19 +6,21 @@ useful for test-time type validation and constraint checking.
 
 Reference: https://www.typescriptlang.org/docs/handbook/utility-types.html
 """
+from __future__ import annotations
 
+from collections.abc import Callable
 from typing import (
     Any,
-    Callable,
-    Literal,
+    NotRequired,
+    Required,
     TypeVar,
     Union,
     get_args,
     get_origin,
     get_type_hints,
 )
-from typing_extensions import NotRequired, ReadOnly, Required, TypedDict
 
+from typing_extensions import TypedDict
 
 T = TypeVar("T")
 K = TypeVar("K")
@@ -113,9 +115,7 @@ def readonly(cls: type[T], *, name: str | None = None) -> type[T]:
     """
     Constructs a type with all properties of T set to readonly.
 
-    Note: Python's TypedDict doesn't have a readonly concept at the type level,
-    so this currently just returns a copy of the type. This is here for API
-    completeness with TypeScript utility types.
+    Uses typing_extensions.ReadOnly (PEP 705) to mark fields as readonly.
 
     TypeScript equivalent: Readonly<T>
 
@@ -124,11 +124,52 @@ def readonly(cls: type[T], *, name: str | None = None) -> type[T]:
         name: Optional custom name for the resulting type
 
     Returns:
-        A new TypedDict with the same fields (readonly is not enforced in Python)
+        A new TypedDict with all fields wrapped in ReadOnly
+
+    Example:
+        >>> class User(TypedDict):
+        ...     name: str
+        ...     age: int
+        >>> ReadonlyUser = readonly(User)
+        >>> # ReadonlyUser has name: ReadOnly[str], age: ReadOnly[int]
     """
+    from typing_extensions import ReadOnly
+
     hints = get_type_hints(cls, include_extras=True)
+
+    # Wrap all fields with ReadOnly, preserving Required/NotRequired wrappers
+    readonly_fields = {}
+    for field_name, field_type in hints.items():
+        origin = get_origin(field_type)
+
+        # Check if already wrapped in ReadOnly
+        if origin is ReadOnly:
+            # Already readonly, keep as is
+            readonly_fields[field_name] = field_type
+        elif origin is Required:
+            # Preserve Required wrapper: Required[ReadOnly[T]]
+            inner = get_args(field_type)[0]
+            inner_origin = get_origin(inner)
+            if inner_origin is ReadOnly:
+                # Already ReadOnly inside Required
+                readonly_fields[field_name] = field_type
+            else:
+                readonly_fields[field_name] = Required[ReadOnly[inner]]
+        elif origin is NotRequired:
+            # Preserve NotRequired wrapper: NotRequired[ReadOnly[T]]
+            inner = get_args(field_type)[0]
+            inner_origin = get_origin(inner)
+            if inner_origin is ReadOnly:
+                # Already ReadOnly inside NotRequired
+                readonly_fields[field_name] = field_type
+            else:
+                readonly_fields[field_name] = NotRequired[ReadOnly[inner]]
+        else:
+            # Not wrapped, wrap with ReadOnly
+            readonly_fields[field_name] = ReadOnly[field_type]
+
     type_name = name if name is not None else f"Readonly{cls.__name__}"
-    return TypedDict(type_name, hints)  # type: ignore
+    return TypedDict(type_name, readonly_fields)  # type: ignore
 
 
 def pick(cls: type[T], keys: tuple[str, ...], *, name: str | None = None) -> type[T]:
@@ -289,12 +330,16 @@ def non_nullable(t: type) -> type:
         >>> NonNullableT = non_nullable(T)
         >>> # Result: str
     """
+    import types
+
     origin = get_origin(t)
 
-    if origin is Union:
+    # Check if it's a Union - handles both typing.Union and types.UnionType (from |)
+    if origin is Union or origin is types.UnionType:
         args = get_args(t)
-        # Filter out None
-        filtered = [arg for arg in args if arg is not type(None)]
+        # Filter out None - note that type(None) is NoneType
+        none_type = type(None)
+        filtered = [arg for arg in args if arg is not none_type]
 
         if len(filtered) == 0:
             raise ValueError("Cannot remove None from a type that is only None")
@@ -327,13 +372,18 @@ def parameters(func: Callable[..., Any]) -> tuple[type, ...]:
         >>> Params = parameters(greet)
         >>> # Result: (str, int)
     """
+    # Use get_type_hints to resolve string annotations from __future__ imports
+    hints = get_type_hints(func)
+
     import inspect
 
     sig = inspect.signature(func)
 
     param_types = []
-    for param in sig.parameters.values():
-        if param.annotation != inspect.Parameter.empty:
+    for param_name, param in sig.parameters.items():
+        if param_name in hints:
+            param_types.append(hints[param_name])
+        elif param.annotation != inspect.Parameter.empty:
             param_types.append(param.annotation)
         else:
             param_types.append(Any)
@@ -359,6 +409,13 @@ def return_type(func: Callable[..., T]) -> type[T]:
         >>> RT = return_type(greet)
         >>> # Result: str
     """
+    # Use get_type_hints to resolve string annotations from __future__ imports
+    hints = get_type_hints(func)
+
+    # get_type_hints returns a dict with 'return' key for the return type
+    if "return" in hints:
+        return hints["return"]
+
     import inspect
 
     sig = inspect.signature(func)
@@ -367,32 +424,3 @@ def return_type(func: Callable[..., T]) -> type[T]:
         return sig.return_annotation
     else:
         return Any  # type: ignore
-
-
-def awaited(t: type) -> type:
-    """
-    This type is meant to model operations like await in async functions,
-    or the .then() method on Promises - specifically, the way that they recursively unwrap Promises.
-
-    Note: In Python, this unwraps Coroutine/Awaitable types to get the yielded type.
-
-    TypeScript equivalent: Awaited<T>
-
-    Args:
-        t: A type, possibly Coroutine or Awaitable
-
-    Returns:
-        The unwrapped type
-    """
-    from collections.abc import Awaitable, Coroutine
-
-    origin = get_origin(t)
-
-    if origin is Coroutine or origin is Awaitable:
-        args = get_args(t)
-        if args:
-            # For Coroutine[Any, Any, T], return T (the third arg)
-            # For Awaitable[T], return T (the first arg)
-            return args[-1] if origin is Coroutine else args[0]
-
-    return t
