@@ -6,11 +6,15 @@
 #   "pytest==9.0"
 # ]
 # ///
+from __future__ import annotations
 
-from pydantic import BaseModel
-from typing_extensions import TypedDict, NotRequired
-from tytr.testing import make_type_test
+from typing import NotRequired
+
 import pytest
+from pydantic import BaseModel
+from typing_extensions import TypedDict
+
+from tytr.testing import make_type_test
 
 
 class MyModel(BaseModel):
