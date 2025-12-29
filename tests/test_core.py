@@ -1,13 +1,20 @@
 """Tests for core module (flatten, to_typeddict, key_of, value_of)."""
+from __future__ import annotations
 
-from typing import get_args, Generic, TypeVar, List, Dict, Optional
-from typing_extensions import TypedDict, Required, NotRequired, Literal
-from pydantic import BaseModel
+from typing import (
+    Generic,
+    NotRequired,
+    Required,
+    TypeVar,
+    get_args,
+)
+
 import pytest
+from pydantic import BaseModel
+from typing_extensions import TypedDict
 
-from tytr.core import flatten, to_typeddict, key_of, value_of, DelimiterCollisionError
 from tytr._internal import td_eq
-
+from tytr.core import DelimiterCollisionError, flatten, key_of, to_typeddict, value_of
 
 # ============================================================================
 # Tests for flatten()
@@ -29,10 +36,9 @@ def test_delimeter(delimiter: str | None) -> None:
         b: str
         c: Child
 
-    kwargs: dict[str, str] = {}
-    if delimiter is not None:
-        kwargs["key_delimiter"] = delimiter
-    result = flatten(MyClass, **kwargs)
+    result = flatten(
+        MyClass, key_delimiter=delimiter, localns=locals(), globalns=globals()
+    )
     expected_fields = {
         "a": int,
         "b": str,
@@ -55,7 +61,7 @@ def test_pydantic() -> None:
         b: str
         c: ChildModel
 
-    result = flatten(MyModel)
+    result = flatten(MyModel, localns=locals(), globalns=globals())
 
     expected = TypedDict(
         "MyModel",
@@ -85,14 +91,21 @@ def test_requirement() -> None:
         b: NotRequired[str]
         c: C
 
-    class Expected(TypedDict):
-        a: Required[int]
-        b: NotRequired[str]
-        c: C
-        c_d: Required[float]
-        c_e: NotRequired[bool]
+    observed = flatten(
+        X, key_delimiter="_", name="Expected", localns=locals(), globalns=globals()
+    )
 
-    observed = flatten(X, key_delimiter="_", name="Expected")
+    # Create Expected TypedDict using dict to avoid ForwardRef issues
+    Expected = TypedDict(
+        "Expected",
+        {
+            "a": Required[int],
+            "b": NotRequired[str],
+            "c": C,
+            "c_d": Required[float],
+            "c_e": NotRequired[bool],
+        },
+    )
 
     assert td_eq(observed, Expected)
 
@@ -114,7 +127,7 @@ def test_delimiter_collision() -> None:
         DelimiterCollisionError,
         match="The delimiter '_' occurs in the field name 'x_y' on the class Child",
     ):
-        flatten(MyClass, key_delimiter="_")
+        flatten(MyClass, key_delimiter="_", localns=locals(), globalns=globals())
 
 
 def test_generic() -> None:
@@ -131,12 +144,21 @@ def test_generic() -> None:
         value: T
         child: WithV[int]
 
-    class Expected(TypedDict, Generic[T]):
-        value: T
-        child: WithV[int]
-        child_value: int
+    # Create Expected TypedDict using functional syntax to avoid ForwardRef issues
+    # Note: Generic TypedDicts can't be created with functional syntax easily,
+    # so we create it as a class but ensure it's not generic
+    Expected = TypedDict(
+        "Expected",
+        {
+            "value": T,
+            "child": WithV[int],
+            "child_value": int,
+        },
+    )
 
-    observed = flatten(WithG, key_delimiter="_", name="Expected")
+    observed = flatten(
+        WithG, key_delimiter="_", name="Expected", localns=locals(), globalns=globals()
+    )
     assert td_eq(observed, Expected)
 
 
@@ -153,7 +175,7 @@ def test_simple_class():
         age: int
         email: str
 
-    result = to_typeddict(User)
+    result = to_typeddict(User, localns=locals(), globalns=globals())
 
     expected = TypedDict(
         "User",
@@ -187,7 +209,7 @@ def test_pydantic_model():
         title: str
         price: float
 
-    result = to_typeddict(Product)
+    result = to_typeddict(Product, localns=locals(), globalns=globals())
 
     expected = TypedDict(
         "Product",
@@ -208,7 +230,7 @@ def test_preserves_required_notrequired():
         name: Required[str]
         age: NotRequired[int]
 
-    result = to_typeddict(PartialUser)
+    result = to_typeddict(PartialUser, localns=locals(), globalns=globals())
 
     expected = TypedDict(
         "PartialUser",
@@ -232,7 +254,7 @@ def test_nested_not_flattened():
         name: str
         address: Address
 
-    result = to_typeddict(Person)
+    result = to_typeddict(Person, localns=locals(), globalns=globals())
 
     expected = TypedDict(
         "Person",
@@ -271,7 +293,7 @@ def test_empty_class():
     class Empty:
         pass
 
-    result = to_typeddict(Empty)
+    result = to_typeddict(Empty, localns=locals(), globalns=globals())
 
     expected = TypedDict("Empty", {})
     assert td_eq(result, expected)
@@ -281,18 +303,18 @@ def test_complex_types():
     """Test that complex type annotations are preserved."""
 
     class ComplexTypes:
-        items: List[str]
-        mapping: Dict[str, int]
-        optional: Optional[float]
+        items: list[str]
+        mapping: dict[str, int]
+        optional: float | None
 
-    result = to_typeddict(ComplexTypes)
+    result = to_typeddict(ComplexTypes, localns=locals(), globalns=globals())
 
     expected = TypedDict(
         "ComplexTypes",
         {
-            "items": List[str],
-            "mapping": Dict[str, int],
-            "optional": Optional[float],
+            "items": list[str],
+            "mapping": dict[str, int],
+            "optional": float | None,
         },
     )
 
@@ -311,12 +333,12 @@ def test_comparison_with_flatten():
         address: Address
 
     # to_typeddict preserves nesting
-    simple = to_typeddict(Person)
+    simple = to_typeddict(Person, localns=locals(), globalns=globals())
     assert "address" in simple.__annotations__
     assert "address_street" not in simple.__annotations__
 
     # flatten expands nesting
-    flat = flatten(Person)
+    flat = flatten(Person, localns=locals(), globalns=globals())
     assert "address" in flat.__annotations__
     assert "address_street" in flat.__annotations__
     assert "address_city" in flat.__annotations__
@@ -366,13 +388,9 @@ def test_key_of_dict_with_int_keys() -> None:
 def test_key_of_nested_typeddict() -> None:
     """Test key_of with nested TypedDict (should only return top-level keys)."""
 
-    class Address(TypedDict):
-        street: str
-        city: str
-
-    class Person(TypedDict):
-        name: str
-        address: Address
+    # Use functional syntax to avoid ForwardRef issues
+    Address = TypedDict("Address", {"street": str, "city": str})
+    Person = TypedDict("Person", {"name": str, "address": Address})
 
     result = key_of(Person)
     args = get_args(result)
@@ -443,13 +461,9 @@ def test_value_of_dict_with_multiple_types() -> None:
 def test_value_of_nested_typeddict() -> None:
     """Test value_of with nested TypedDict."""
 
-    class Address(TypedDict):
-        street: str
-        city: str
-
-    class Person(TypedDict):
-        name: str
-        address: Address
+    # Use functional syntax to avoid ForwardRef issues
+    Address = TypedDict("Address", {"street": str, "city": str})
+    Person = TypedDict("Person", {"name": str, "address": Address})
 
     result = value_of(Person)
     args = get_args(result)

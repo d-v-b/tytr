@@ -1,4 +1,5 @@
 """Tests for internal utility functions (_internal module)."""
+from __future__ import annotations
 
 import pytest
 from typing_extensions import TypedDict
@@ -170,16 +171,22 @@ def test_make_type_test_basic() -> None:
 
 def test_make_type_test_with_transform() -> None:
     """Test make_type_test with a transformation."""
+    from typing import NotRequired
+
     from tytr.testing import make_type_test
-    from typing_extensions import NotRequired
 
     class User:
         name: str
         age: int
 
-    class UserPartial(TypedDict):
-        name: NotRequired[str]
-        age: NotRequired[int]
+    # Use functional syntax to avoid ForwardRef issues
+    UserPartial = TypedDict(
+        "UserPartial",
+        {
+            "name": NotRequired[str],
+            "age": NotRequired[int],
+        },
+    )
 
     test_func = make_type_test(User, UserPartial, transform="partial")
     assert callable(test_func)

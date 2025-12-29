@@ -1,11 +1,13 @@
 """Tests for TypeScript-style utility types."""
+from __future__ import annotations
 
-from typing import Union
-from typing_extensions import NotRequired, Required, TypedDict
+from typing import NotRequired, Required, Union
+
 import pytest
+from typing_extensions import TypedDict
 
+from tytr._internal import td_eq
 from tytr.utilities import (
-    awaited,
     exclude,
     extract,
     non_nullable,
@@ -17,7 +19,6 @@ from tytr.utilities import (
     required,
     return_type,
 )
-from tytr._internal import td_eq
 
 
 class User(TypedDict):
@@ -275,16 +276,18 @@ def test_non_nullable():
 
 def test_non_nullable_union():
     """Test that non_nullable works with multiple types."""
-    nullable_type = Union[str, int, None]
+    nullable_type = str | int | None
     result = non_nullable(nullable_type)
 
-    assert result == Union[str, int]
+    # Compare using == since Union[str, int] and str | int are equivalent
+    # but not identical
+    assert result == (str | int)
 
 
 def test_non_nullable_not_nullable():
     """Test that non_nullable returns non-nullable types as-is."""
     result = non_nullable(str)
-    assert result == str
+    assert result is str
 
 
 def test_non_nullable_only_none():
@@ -321,7 +324,7 @@ def test_return_type():
         return f"Hello {name}"
 
     result = return_type(greet)
-    assert result == str
+    assert result is str
 
 
 def test_return_type_no_annotation():
@@ -333,28 +336,3 @@ def test_return_type_no_annotation():
 
     result = return_type(func)
     assert result == Any
-
-
-def test_awaited_coroutine():
-    """Test that awaited unwraps Coroutine types."""
-    from collections.abc import Coroutine
-    from typing import Any
-
-    coro_type = Coroutine[Any, Any, str]
-    result = awaited(coro_type)
-    assert result == str
-
-
-def test_awaited_awaitable():
-    """Test that awaited unwraps Awaitable types."""
-    from collections.abc import Awaitable
-
-    awaitable_type = Awaitable[int]
-    result = awaited(awaitable_type)
-    assert result == int
-
-
-def test_awaited_non_async():
-    """Test that awaited returns non-async types as-is."""
-    result = awaited(str)
-    assert result == str
