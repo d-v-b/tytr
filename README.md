@@ -3,7 +3,8 @@
 Type transformations for Python.
 
 Create types from class definitions.
-Create tests to ensure that your types track the classes they model.
+
+Create tests to keep those types up to date.
 
 ## Type creation
 
@@ -48,7 +49,3 @@ class FoodictProtocol(Protocol):
 ```
 
 ... and many more
-
-## Testing types
-
-`tytr` provides simple tools for checking type relationships at test time. See
