@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Type transformations"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "typing-extensions>=4.5.0; python_version < '3.13'",
+]
 license = "MIT"
 license-files = ["LICENSE"]
 classifiers = [
@@ -25,6 +27,10 @@ classifiers = [
 authors = [
     {name = "Davis Bennett"}
 ]
+
+[project.scripts]
+tytr = "tytr.cli:main"
+
 [dependency-groups]
 docs = [
     "mkdocs-material>=9.7.1",
@@ -53,3 +59,9 @@ select = [
     "UP",
     "W",
 ]
+ignore = [
+    "UP013"
+]
+
+[tool.ruff.lint.isort]
+required-imports = ["from __future__ import annotations"]
