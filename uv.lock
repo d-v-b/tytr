@@ -662,7 +662,7 @@ wheels = [
 [[package]]
 name = "tytr"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "typing-extensions", marker = "python_full_version < '3.13'" },
 ]
