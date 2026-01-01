@@ -11,7 +11,5 @@ build:
     pre_build:
       - pip install uv
       - uv sync --group docs
-
-mkdocs:
-  configuration: mkdocs.yml
-  fail_on_warning: true
+    post_build:
+      - uv run mkdocs build --clean --site-dir $READTHEDOCS_OUTPUT/html
