@@ -7,11 +7,7 @@ build:
   os: ubuntu-24.04
   tools:
     python: "3.11"
-  jobs:
-    pre_build:
-      - pip install uv
-      - uv sync --group docs
-
-mkdocs:
-  configuration: mkdocs.yml
-  fail_on_warning: true
+  commands:
+    - pip install uv
+    - uv sync --group docs
+    - uv run mkdocs build --clean --site-dir $READTHEDOCS_OUTPUT/html
