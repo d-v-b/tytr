@@ -1,6 +1,7 @@
 site_name: tytr
 site_description: TypeScript-style utility types for Python
 site_author: Davis Bennett
+site_url: https://tytr.readthedocs.io/
 
 theme:
   name: material
