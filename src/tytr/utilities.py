@@ -8,6 +8,7 @@ Reference: https://www.typescriptlang.org/docs/handbook/utility-types.html
 """
 from __future__ import annotations
 
+import sys
 import types
 from collections.abc import Callable
 from typing import (
@@ -21,7 +22,14 @@ from typing import (
     get_type_hints,
 )
 
-from typing_extensions import TypedDict
+# Always use typing_extensions.TypedDict for consistency
+if sys.version_info < (3, 13):
+    from typing_extensions import ReadOnly, TypedDict
+else:
+    try:
+        from typing_extensions import ReadOnly, TypedDict
+    except ImportError:
+        from typing import ReadOnly, TypedDict  # type: ignore
 
 T = TypeVar("T")
 K = TypeVar("K")
@@ -134,8 +142,6 @@ def readonly(cls: type[T], *, name: str | None = None) -> type[T]:
         >>> ReadonlyUser = readonly(User)
         >>> # ReadonlyUser has name: ReadOnly[str], age: ReadOnly[int]
     """
-    from typing_extensions import ReadOnly
-
     hints = get_type_hints(cls, include_extras=True)
 
     # Wrap all fields with ReadOnly, preserving Required/NotRequired wrappers

@@ -1,10 +1,22 @@
 """Internal utility functions - not part of the public API."""
 from __future__ import annotations
 
+import sys
+import typing
 from typing import Generic, TypeVar, get_args, get_origin, get_type_hints
 
-import typing_extensions
-from typing_extensions import get_original_bases
+# get_original_bases is only in typing_extensions, not in stdlib typing
+if sys.version_info < (3, 13):
+    from typing_extensions import get_original_bases
+else:
+    # Still need typing_extensions for get_original_bases even on 3.13+
+    try:
+        from typing_extensions import get_original_bases
+    except ImportError:
+        # Fallback if typing_extensions not available
+        def get_original_bases(cls):  # type: ignore
+            """Fallback implementation when typing_extensions not available."""
+            return getattr(cls, '__orig_bases__', ())
 
 
 def _substitute_type_vars(type_hint, type_map: dict):
@@ -93,7 +105,7 @@ def _is_typeddict(tp: type) -> bool:
     )
 
 
-def td_repr(td: typing_extensions._TypedDictMeta) -> str:
+def td_repr(td: typing._TypedDictMeta) -> str:
     """
     Return a string representation of a TypedDict.
 
@@ -107,7 +119,7 @@ def td_repr(td: typing_extensions._TypedDictMeta) -> str:
     return "\n".join(lines)
 
 
-def td_eq(a: typing_extensions._TypedDictMeta, b: type) -> bool:
+def td_eq(a: typing._TypedDictMeta, b: type) -> bool:
     """
     Test if two typeddicts have the same name, fields and types, and parameters.
 
@@ -143,7 +155,7 @@ def td_eq(a: typing_extensions._TypedDictMeta, b: type) -> bool:
     return True
 
 
-def td_diff(a: typing_extensions._TypedDictMeta, b: type) -> str:
+def td_diff(a: typing._TypedDictMeta, b: type) -> str:
     """
     Generate a human-readable diff between two TypedDicts.
 
@@ -156,7 +168,7 @@ def td_diff(a: typing_extensions._TypedDictMeta, b: type) -> str:
 
     Parameters
     ----------
-    a : typing_extensions._TypedDictMeta
+    a : typing._TypedDictMeta
         First TypedDict to compare
     b : type
         Second TypedDict to compare

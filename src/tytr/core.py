@@ -1,6 +1,7 @@
 """Core type transformation functions for tytr."""
 from __future__ import annotations
 
+import sys
 from typing import (
     Literal,
     NotRequired,
@@ -10,7 +11,16 @@ from typing import (
     get_type_hints,
 )
 
-from typing_extensions import TypedDict
+# Always use typing_extensions.TypedDict for consistency
+# It has __closed__ attribute and supports the closed parameter (PEP 728)
+if sys.version_info < (3, 13):
+    from typing_extensions import TypedDict
+else:
+    try:
+        from typing_extensions import TypedDict
+    except ImportError:
+        # Fallback to typing.TypedDict if typing_extensions not available
+        from typing import TypedDict  # type: ignore
 
 from tytr._internal import _is_typeddict, _resolve_generic_typeddict
 
@@ -370,7 +380,12 @@ def to_typeddict(
         cls, globalns=globalns, localns=localns, include_extras=True
     )
     type_name = name if name is not None else cls.__name__
-    return TypedDict(type_name, hints, closed=closed)  # type: ignore
+
+    # typing_extensions.TypedDict supports the closed parameter
+    if closed is not None:
+        return TypedDict(type_name, hints, closed=closed)  # type: ignore
+    else:
+        return TypedDict(type_name, hints)  # type: ignore
 
 
 def flatten(
@@ -437,4 +452,8 @@ def flatten(
     else:
         td_name = name
 
-    return TypedDict(td_name, flattened_fields, closed=closed)
+    # typing_extensions.TypedDict supports the closed parameter
+    if closed is not None:
+        return TypedDict(td_name, flattened_fields, closed=closed)
+    else:
+        return TypedDict(td_name, flattened_fields)
