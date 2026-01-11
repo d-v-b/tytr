@@ -230,7 +230,7 @@ def generate_code(
         hints = get_type_hints(result_type, include_extras=True)
 
         # Collect required imports
-        imports.add("from typing_extensions import TypedDict")
+        imports.add("from typing import TypedDict")
 
         # Check what typing constructs we need
         typing_imports = []
@@ -249,7 +249,14 @@ def generate_code(
             imports.add(f"from typing import {', '.join(sorted(typing_imports))}")
 
         if needs_readonly:
-            imports.add("from typing_extensions import ReadOnly")
+            # ReadOnly is in typing from 3.13+, typing_extensions before
+            imports.add("import sys")
+            imports.add(
+                "if sys.version_info < (3, 13):\n"
+                "    from typing_extensions import ReadOnly\n"
+                "else:\n"
+                "    from typing import ReadOnly"
+            )
 
         # Generate TypedDict class
         body_lines.append(f"class {result_type.__name__}(TypedDict):")
