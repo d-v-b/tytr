@@ -119,11 +119,29 @@ def td_repr(td: typing._TypedDictMeta) -> str:
     return "\n".join(lines)
 
 
+def _types_equal(t1: object, t2: object) -> bool:
+    """
+    Compare two type annotations for equality.
+
+    Handles ForwardRefs specially: compares by name only, ignoring module.
+    This allows comparing TypedDicts with forward references from different modules.
+    """
+    from typing import ForwardRef
+
+    # If both are ForwardRefs, compare by name only
+    if isinstance(t1, ForwardRef) and isinstance(t2, ForwardRef):
+        return t1.__forward_arg__ == t2.__forward_arg__
+
+    # Otherwise use standard equality
+    return t1 == t2
+
+
 def td_eq(a: typing._TypedDictMeta, b: type) -> bool:
     """
     Test if two typeddicts have the same name, fields and types, and parameters.
 
     Internal helper used for test assertions.
+    Compares ForwardRefs by name only, ignoring module differences.
     """
     # Check if both are TypedDict types by checking for TypedDict-specific attributes
     is_a_typeddict = hasattr(a, "__annotations__") and hasattr(a, "__closed__")
@@ -141,15 +159,17 @@ def td_eq(a: typing._TypedDictMeta, b: type) -> bool:
     if a.__name__ != b.__name__:
         return False
 
-    # Use get_type_hints to resolve any ForwardRefs from deferred annotations
-    a_hints = get_type_hints(a, include_extras=True)
-    b_hints = get_type_hints(b, include_extras=True)
+    # Compare raw annotations (don't resolve ForwardRefs)
+    a_annot = a.__annotations__
+    b_annot = b.__annotations__
 
-    if a_hints.keys() != b_hints.keys():
+    if a_annot.keys() != b_annot.keys():
         return False
-    for key in a_hints.keys():
-        if a_hints[key] != b_hints[key]:
+
+    for key in a_annot.keys():
+        if not _types_equal(a_annot[key], b_annot[key]):
             return False
+
     if a.__closed__ != b.__closed__:
         return False
     return True
@@ -194,9 +214,10 @@ def td_diff(a: typing._TypedDictMeta, b: type) -> str:
     if a.__name__ != b.__name__:
         differences.append(f"Different names: '{a.__name__}' != '{b.__name__}'")
 
-    # Use get_type_hints to resolve any ForwardRefs from deferred annotations
-    a_annots = get_type_hints(a, include_extras=True)
-    b_annots = get_type_hints(b, include_extras=True)
+    # Use raw annotations (don't resolve ForwardRefs)
+    # This allows comparing TypedDicts with forward references
+    a_annots = a.__annotations__
+    b_annots = b.__annotations__
 
     # Check for missing/extra fields
     a_keys = set(a_annots.keys())
@@ -220,7 +241,7 @@ def td_diff(a: typing._TypedDictMeta, b: type) -> str:
     for key in sorted(common_keys):
         a_type = a_annots[key]
         b_type = b_annots[key]
-        if a_type != b_type:
+        if not _types_equal(a_type, b_type):
             # Format the types nicely
             a_type_str = _format_type(a_type)
             b_type_str = _format_type(b_type)

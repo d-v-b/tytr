@@ -14,11 +14,7 @@ from pydantic import BaseModel
 from typing_extensions import TypedDict
 
 from tytr._internal import td_eq
-from tytr.core import DelimiterCollisionError, flatten, key_of, to_typeddict, value_of
-
-# ============================================================================
-# Tests for flatten()
-# ============================================================================
+from tytr.core import DelimiterCollisionError, flatten, key_of, to_typeddict, to_typeddict_recursive, value_of
 
 
 @pytest.mark.parametrize("delimiter", [None, ".", "/"])
@@ -320,6 +316,34 @@ def test_complex_types():
 
     assert td_eq(result, expected)
 
+def test_to_typeddict_recursive() -> None:
+    """
+    Test that to_typeddict_recursive works.
+
+    Tests that nested types are converted to forward references (strings)
+    rather than actual type objects, which is better for code generation.
+    """
+
+    class B:
+        c: int
+
+    class A:
+        b: B
+
+    actual = to_typeddict_recursive(A, name_scheme={"suffix": "Dict"}, localns=locals())
+
+    # Build expected dict using forward references
+    expected = {
+        "BDict": TypedDict("BDict", {"c": int}),
+        "ADict": TypedDict("ADict", {"b": "BDict"}),
+    }
+
+    # Compare keys
+    assert set(actual.keys()) == set(expected.keys())
+
+    # Compare each TypedDict using td_eq (now handles ForwardRef properly)
+    for key in expected:
+        assert td_eq(actual[key], expected[key]), f"Mismatch for {key}"
 
 def test_comparison_with_flatten():
     """Test to show the difference between to_typeddict and flatten."""
@@ -342,11 +366,6 @@ def test_comparison_with_flatten():
     assert "address" in flat.__annotations__
     assert "address_street" in flat.__annotations__
     assert "address_city" in flat.__annotations__
-
-
-# ============================================================================
-# Tests for key_of()
-# ============================================================================
 
 
 def test_key_of_typeddict() -> None:

@@ -157,9 +157,8 @@ def test_make_type_test_basic() -> None:
         name: str
         age: int
 
-    class UserDict(TypedDict):
-        name: str
-        age: int
+    # Use functional syntax to avoid ForwardRefs from __future__ annotations
+    UserDict = TypedDict("UserDict", {"name": str, "age": int})
 
     test_func = make_type_test(User, UserDict)
     assert callable(test_func)
@@ -203,9 +202,8 @@ def test_make_type_test_failure() -> None:
         name: str
         age: int
 
-    class WrongUserDict(TypedDict):
-        name: str
-        age: str  # Wrong type
+    # Use functional syntax to avoid ForwardRefs from __future__ annotations
+    WrongUserDict = TypedDict("WrongUserDict", {"name": str, "age": str})
 
     test_func = make_type_test(User, WrongUserDict)
 
